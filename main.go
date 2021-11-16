@@ -1,18 +1,21 @@
 package main
 
 func main() {
-	inputFile := "models.json"
+	inputFile := "models2.json"
 	hmms := HiddenMarkovModels{}
+
 	err := hmms.ReadModelsFromFile(inputFile)
 	if err != nil {
 		panic(err.Error())
 	}
+
 	err = hmms.ReadObservationsFromFile(inputFile)
 	if err != nil {
 		panic(err.Error())
 	}
-}
 
+	hmms.EvaluateModels()
+}
 
 /*
  Das Einlesen der Definition von (beliebig vielen) HMMs soll über Files möglich sein.

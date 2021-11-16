@@ -1,0 +1,22 @@
+{
+  "models": [
+    {
+      "initialProbabilities": {
+        "R": 0.3,
+        "C": 0.5,
+        "S": 0.2
+      },
+      "stateTransitionProbabilities": "R->R->0.4, R->C->0.3, R->S->0.3, C->R->0.2, C->C->0.6, C->S->0.2, S->R->0.1, S->C->0.1, S->S->0.8",
+      "emissionProbabilities": "R->D->0.1, R->M->0.5, R->H->0.4, C->D->0.3, C->M->0.4, C->H->0.3, S->D->0.6, S->M->0.2, S->H->0.2"
+    },
+    {
+      "initialProbabilities": {
+        "R": 0.3,
+        "C": 0.5
+      },
+      "stateTransitionProbabilities": "R->R->0.4, R->C->0.6, C->R->0.2, C->C->0.8",
+      "emissionProbabilities": "R->D->0.1, R->M->0.6, C->D->0.9, C->M->0.4"
+    }
+  ],
+  "observations": "D, M, H"
+}

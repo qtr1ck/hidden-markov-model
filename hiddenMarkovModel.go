@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/buger/jsonparser"
 	"os"
 	"strconv"
@@ -25,6 +26,7 @@ func (hmms *HiddenMarkovModels) ReadModelsFromFile(filename string) error {
 		err = jsonparser.ObjectEach(value, func(key []byte, innerValue []byte, innerDataType jsonparser.ValueType, innerOffset int) error {
 			parsedProb, err := strconv.ParseFloat(string(innerValue), 64)
 			model.AddInitProb(string(key), parsedProb)
+			model.AddState(string(key))
 			return err
 		}, "initialProbabilities")
 
@@ -69,12 +71,18 @@ func (hmms *HiddenMarkovModels) ReadObservationsFromFile(filename string) error 
 	return nil
 }
 
+func (hmms *HiddenMarkovModels) EvaluateModels() {
+	for _, model := range hmms.models {
+		fmt.Println(model.ForwardAlgorithm(&hmms.observations))
+	}
+}
+
 func (hmms *HiddenMarkovModels) AddModel(model HiddenMarkovModel) {
 	hmms.models = append(hmms.models, model)
 }
 
 type HiddenMarkovModel struct {
-	// states                       []string  TODO: necessary?
+	states                       []string
 	initialProbabilities         map[string]float64
 	stateTransitionProbabilities map[string]map[string]float64
 	emissionProbabilities        map[string]map[string]float64
@@ -136,4 +144,38 @@ func (hmm *HiddenMarkovModel) AddEmProb(from string, to string, prob float64) {
 		hmm.emissionProbabilities[from] = make(map[string]float64)
 	}
 	hmm.emissionProbabilities[from][to] = prob
+}
+
+func (hmm *HiddenMarkovModel) ForwardAlgorithm(observations *[]string) float64 {
+	alphas := hmm.initForwardAlgo(observations)
+	//alpha = append(alpha, hmm.initForwardAlgo(observations))
+	//prob := 0.0
+	for t := 1; t < len(*observations); t++ {
+		for _, state := range hmm.states {
+			sum := 0.0
+			for prevState, arr := range alphas {
+				sum += arr[t-1] * hmm.stateTransitionProbabilities[prevState][state]
+			}
+			alphas[state] = append(alphas[state], sum*hmm.emissionProbabilities[state][(*observations)[t]])
+		}
+	}
+
+	totalProb := 0.0
+	for _, alpha := range alphas {
+		totalProb += alpha[len(alpha)-1]
+	}
+
+	return totalProb
+}
+
+func (hmm *HiddenMarkovModel) initForwardAlgo(observations *[]string) map[string][]float64 {
+	alpha := make(map[string][]float64)
+	for _, state := range hmm.states {
+		alpha[state] = append(alpha[state], hmm.initialProbabilities[state]*hmm.emissionProbabilities[state][(*observations)[0]])
+	}
+	return alpha
+}
+
+func (hmm *HiddenMarkovModel) AddState(state string) {
+	hmm.states = append(hmm.states, state)
 }
