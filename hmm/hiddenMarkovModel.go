@@ -1,8 +1,9 @@
-package src
+package hmm
 
 import (
 	"fmt"
 	"github.com/buger/jsonparser"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -22,6 +23,7 @@ func (hmms *HiddenMarkovModels) ReadModelsFromFile(filename string) error {
 
 	_, err = jsonparser.ArrayEach(data, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
 		model := HiddenMarkovModel{}
+
 		// parse initial probabilities
 		err = jsonparser.ObjectEach(value, func(key []byte, innerValue []byte, innerDataType jsonparser.ValueType, innerOffset int) error {
 			parsedProb, err := strconv.ParseFloat(string(innerValue), 64)
@@ -29,7 +31,6 @@ func (hmms *HiddenMarkovModels) ReadModelsFromFile(filename string) error {
 			model.AddState(string(key))
 			return err
 		}, "initialProbabilities")
-
 		if err != nil {
 			return
 		}
@@ -40,12 +41,14 @@ func (hmms *HiddenMarkovModels) ReadModelsFromFile(filename string) error {
 		if err != nil {
 			return
 		}
+
 		// parse emission probabilities
 		emProb, _ := jsonparser.GetString(value, "emissionProbabilities")
 		err = model.AddEmProbFromJSONString(emProb)
 		if err != nil {
 			return
 		}
+
 		hmms.AddModel(model)
 	}, "models")
 
@@ -72,9 +75,20 @@ func (hmms *HiddenMarkovModels) ReadObservationsFromFile(filename string) error 
 }
 
 func (hmms *HiddenMarkovModels) EvaluateModels() {
+	greatestProb := 0.0
+	bestModel := HiddenMarkovModel{}
 	for _, model := range hmms.models {
-		fmt.Println(model.ForwardAlgorithm(&hmms.observations))
+		modelProb := model.ForwardAlgorithm(&hmms.observations)
+		if greatestProb < modelProb {
+			greatestProb = modelProb
+			bestModel = model
+		}
 	}
+	fmt.Println("Best Model:")
+	fmt.Printf("%+v\n", bestModel)
+	fmt.Println("Probability:", greatestProb)
+	fmt.Println("Log-Probability:", math.Log(greatestProb))
+
 }
 
 func (hmms *HiddenMarkovModels) AddModel(model HiddenMarkovModel) {
@@ -96,7 +110,7 @@ func (hmm *HiddenMarkovModel) AddInitProb(key string, probability float64) {
 }
 
 func (hmm *HiddenMarkovModel) AddTransProbFromJSONString(probString string) error {
-	// "R->R->0.2, R->S->0.1, R->C->0.7, S->R->0.3, S->S->0.4, S->C->0.3, C->R->0.1, C->S->0.4, C->C->0.5"
+	// "R->R->0.2" - string format of transition probability
 	probs := strings.Split(probString, ",")
 	for _, prob := range probs {
 		sp := strings.Split(prob, "->")
@@ -110,6 +124,7 @@ func (hmm *HiddenMarkovModel) AddTransProbFromJSONString(probString string) erro
 }
 
 func (hmm *HiddenMarkovModel) AddEmProbFromJSONString(probString string) error {
+	// "R->H->0.2" - string format of emission probability
 	probs := strings.Split(probString, ",")
 	for _, prob := range probs {
 		sp := strings.Split(prob, "->")
@@ -147,8 +162,10 @@ func (hmm *HiddenMarkovModel) AddEmProb(from string, to string, prob float64) {
 }
 
 func (hmm *HiddenMarkovModel) ForwardAlgorithm(observations *[]string) float64 {
+	// initial step
 	alphas := hmm.initForwardAlgo(observations)
 
+	// recursive step
 	for t := 1; t < len(*observations); t++ {
 		for _, state := range hmm.states {
 			sum := 0.0
@@ -160,6 +177,7 @@ func (hmm *HiddenMarkovModel) ForwardAlgorithm(observations *[]string) float64 {
 	}
 
 	totalProb := 0.0
+	// termination step
 	for _, alpha := range alphas {
 		totalProb += alpha[len(alpha)-1]
 	}
