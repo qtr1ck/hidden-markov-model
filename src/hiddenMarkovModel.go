@@ -1,4 +1,4 @@
-package main
+package src
 
 import (
 	"fmt"
@@ -148,8 +148,7 @@ func (hmm *HiddenMarkovModel) AddEmProb(from string, to string, prob float64) {
 
 func (hmm *HiddenMarkovModel) ForwardAlgorithm(observations *[]string) float64 {
 	alphas := hmm.initForwardAlgo(observations)
-	//alpha = append(alpha, hmm.initForwardAlgo(observations))
-	//prob := 0.0
+
 	for t := 1; t < len(*observations); t++ {
 		for _, state := range hmm.states {
 			sum := 0.0

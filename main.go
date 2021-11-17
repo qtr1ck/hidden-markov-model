@@ -1,20 +1,22 @@
 package main
 
+import hmm "hidden-markov-model/src"
+
 func main() {
-	inputFile := "models2.json"
-	hmms := HiddenMarkovModels{}
+	inputFile := "resources/models2.json"
+	markovModels := hmm.HiddenMarkovModels{}
 
-	err := hmms.ReadModelsFromFile(inputFile)
+	err := markovModels.ReadModelsFromFile(inputFile)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	err = hmms.ReadObservationsFromFile(inputFile)
+	err = markovModels.ReadObservationsFromFile(inputFile)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	hmms.EvaluateModels()
+	markovModels.EvaluateModels()
 }
 
 /*
